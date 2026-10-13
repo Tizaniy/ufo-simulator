@@ -4,6 +4,10 @@ global:
   # Keep k0rdent_apis_base_url as http for browser callback/CORS below.
   authIssuerUrl: "{{ k0rdent_apis_auth_issuer_url }}"
   imagePullSecret: "{{ k0rdent_apis_pull_secret_name }}"
+{% if k0rdent_apis_gateway_tls_enabled | bool %}
+  # The worker reads the issuer CA Secret from global.namespace.
+  namespace: "{{ k0rdent_apis_namespace }}"
+{% endif %}
 
 auth:
   image:
@@ -80,6 +84,12 @@ reconciler:
 {% endif %}
     pullPolicy: Always
 
+# Kind overlay sets IfNotPresent for a locally loaded image; we pull from MSR.
+credentials:
+  image:
+    repository: "registry.ci.mirantis.com/k0rdent-apis/images/k0r-credentials"
+    pullPolicy: Always
+
 workflow:
   api:
     image:
@@ -133,6 +143,11 @@ workflow:
       NICO_SERVICE_ACCOUNT_PASSWORD:
         secretName: "{{ k0rdent_apis_nico_sa_secret }}"
         key: password
+{% if k0rdent_apis_gateway_tls_enabled | bool %}
+    # Lets workload clusters trust the TLS gateway's lab CA.
+    clusterAuthentication:
+      caSecretName: "{{ k0rdent_apis_issuer_ca_secret }}"
+{% endif %}
   config:
     worker:
       mockMode: "false"
