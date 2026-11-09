@@ -10,6 +10,11 @@ global:
 {% endif %}
 
 auth:
+{% if k0rdent_apis_gateway_tls_enabled | bool %}
+  # The lab mock IdP serves https with a cert from the lab CA; auth/iam fetch
+  # its discovery document, so they must trust that CA.
+  customCACertSecret: "{{ k0rdent_apis_issuer_ca_secret }}"
+{% endif %}
   image:
     pullPolicy: Always
     repository: "{{ k0rdent_apis_image_registry }}/k0r-auth"
@@ -37,6 +42,11 @@ authz:
     pullPolicy: Always
 
 iam:
+{% if k0rdent_apis_gateway_tls_enabled | bool %}
+  # The lab mock IdP serves https with a cert from the lab CA; auth/iam fetch
+  # its discovery document, so they must trust that CA.
+  customCACertSecret: "{{ k0rdent_apis_issuer_ca_secret }}"
+{% endif %}
   image:
     repository: "{{ k0rdent_apis_image_registry }}/k0r-iam"
 {% if k0rdent_apis_image_tag %}
@@ -87,7 +97,10 @@ reconciler:
 # Kind overlay sets IfNotPresent for a locally loaded image; we pull from MSR.
 credentials:
   image:
-    repository: "registry.ci.mirantis.com/k0rdent-apis/images/k0r-credentials"
+    repository: "{{ k0rdent_apis_image_registry }}/k0r-credentials"
+{% if k0rdent_apis_image_tag %}
+    tag: "{{ k0rdent_apis_image_tag }}"
+{% endif %}
     pullPolicy: Always
 
 workflow:
@@ -132,6 +145,10 @@ workflow:
       NICO_KEYCLOAK_BASE_URL: "{{ nico_keycloak_base_url }}"
       NICO_KEYCLOAK_REALM:   "{{ nico_keycloak_realm }}"
       NICO_SERVICE_ACCOUNT_ID: "{{ nico_client_id }}"
+      # v1.3.0 values-secret-kind.yaml sets a plain placeholder for this; drop
+      # it so the envSecretRef below is the only definition (a duplicate env
+      # name breaks the Deployment patch).
+      NICO_SERVICE_ACCOUNT_PASSWORD: null
       DEFAULT_NICO_ORGANIZATION: "{{ nico_api_org }}"
       DEFAULT_NICO_SITE: "{{ nico_site_name }}"
       DEFAULT_NICO_SSH_KEY_GROUP_IDS: "{{ nico_ids.ssh_key_group_id }}"

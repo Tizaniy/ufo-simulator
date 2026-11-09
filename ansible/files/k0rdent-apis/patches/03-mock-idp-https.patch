@@ -1,0 +1,39 @@
+diff --git a/scripts/post-deploy/envs/kind/manifest.yaml b/scripts/post-deploy/envs/kind/manifest.yaml
+--- a/scripts/post-deploy/envs/kind/manifest.yaml
++++ b/scripts/post-deploy/envs/kind/manifest.yaml
+@@ -196,7 +196,7 @@
+   - displayName: Kind IdP (operator)
+     org: kind
+     tenantDomain: kind.test
+-    oidcDiscoveryUrl: http://mock-oauth2-server.k0rdent-apis.svc:8080/kind/.well-known/openid-configuration
++    oidcDiscoveryUrl: https://mock-oauth2-server.k0rdent-apis.svc:8080/kind/.well-known/openid-configuration
+     oidcClientId: kind-mock-client
+     oidcClientSecret:
+       env: KIND_IDP_SECRET
+@@ -209,7 +209,7 @@
+   - displayName: Acme IdP (alice)
+     org: acme
+     tenantDomain: acme.test
+-    oidcDiscoveryUrl: http://mock-oauth2-server.k0rdent-apis.svc:8080/acme/.well-known/openid-configuration
++    oidcDiscoveryUrl: https://mock-oauth2-server.k0rdent-apis.svc:8080/acme/.well-known/openid-configuration
+     oidcClientId: kind-mock-acme-client
+     oidcClientSecret:
+       env: KIND_IDP_SECRET
+@@ -222,7 +222,7 @@
+   - displayName: Vendor IdP (kind)
+     org: vendor
+     tenantDomain: vendor.test
+-    oidcDiscoveryUrl: http://mock-oauth2-server.k0rdent-apis.svc:8080/vendor/.well-known/openid-configuration
++    oidcDiscoveryUrl: https://mock-oauth2-server.k0rdent-apis.svc:8080/vendor/.well-known/openid-configuration
+     oidcClientId: kind-mock-vendor-client
+     oidcClientSecret:
+       env: KIND_IDP_SECRET
+@@ -241,7 +241,7 @@
+   - displayName: Kind fallback IdP (bob, eng)
+     org: ""
+     tenantDomain: ciam.internal
+-    oidcDiscoveryUrl: http://mock-oauth2-server.k0rdent-apis.svc:8080/acme-eng/.well-known/openid-configuration
++    oidcDiscoveryUrl: https://mock-oauth2-server.k0rdent-apis.svc:8080/acme-eng/.well-known/openid-configuration
+     oidcClientId: kind-mock-acme-eng-client
+     oidcClientSecret:
+       env: KIND_IDP_SECRET

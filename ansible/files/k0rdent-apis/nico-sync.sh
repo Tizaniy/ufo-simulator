@@ -86,6 +86,7 @@ fi
 # ─── k0rdent OAuth token flow (inlined; was external ~/login.sh) ────
 : "${K0R_LOGIN_ORG:=kind}"
 : "${K0R_LOGIN_NAMESPACE:=k0rdent-apis}"
+: "${K0R_LAB_CA:=/opt/ufo_lab/pki/k0rdent-apis-gateway/ca.crt}"
 
 _k0r_login() {
   local auth_ip mock_ip auth_base init auth_url trace callback token
@@ -95,9 +96,14 @@ _k0r_login() {
   init=$(curl -sS -c /tmp/jar -X POST "$auth_base/v1/regions/global/auth/login/initiate" \
     -H 'Content-Type: application/json' \
     -d "{\"email\":\"admin@${K0R_LOGIN_ORG}.test\",\"redirectUri\":\"${BASE}/v1/regions/global/auth/callback\",\"clientId\":\"operator-portal\"}")
-  auth_url=$(echo "$init" | jq -r .authorizationUrl \
-    | sed "s|http://mock-oauth2-server\\.${K0R_LOGIN_NAMESPACE}\\.svc:8080|http://$mock_ip:8080|")
-  trace=$(curl -sS -L --max-redirs 5 -v -b /tmp/jar -c /tmp/jar -o /dev/null "$auth_url" 2>&1 || true)
+  auth_url=$(echo "$init" | jq -r .authorizationUrl)
+  # The mock IdP may serve http or https (lab CA). Resolve its in-cluster name
+  # to the Service IP instead of rewriting the URL, so TLS names still match.
+  local ca_args=()
+  [ -r "$K0R_LAB_CA" ] && ca_args=(--cacert "$K0R_LAB_CA")
+  trace=$(curl -sS -L --max-redirs 5 -v "${ca_args[@]}" \
+    --resolve "mock-oauth2-server.${K0R_LOGIN_NAMESPACE}.svc:8080:$mock_ip" \
+    -b /tmp/jar -c /tmp/jar -o /dev/null "$auth_url" 2>&1 || true)
   callback=$(echo "$trace" | sed -n 's/^< [Ll]ocation: //p' | tr -d '\r' | tail -1)
   token=$(echo "$callback" | sed 's/.*[#?]access_token=//; s/&.*//')
   [ -n "$token" ] || { echo "FAIL: no token extracted. Last redirect: $callback" >&2; return 1; }
@@ -266,6 +272,9 @@ while read -r M; do
   BODY_LINE=$(printf '%s' "$OUT" | sed '$d')
   MSG=$(printf '%s' "$BODY_LINE" | jq -c '.error // .server // .' 2>/dev/null || echo "$BODY_LINE")
   case "$CODE" in
+    # k0rdent-apis >= 1.3.0 answers a replayed registration with 200 and the
+    # existing server (201 = new); older releases answered 409.
+    200) info "  = $ID already registered ($(printf '%s' "$BODY_LINE" | jq -r .id))"; SKIPPED=$((SKIPPED+1)) ;;
     2*)
       SLUG=$(printf '%s' "$BODY_LINE" | jq -r .id)
       info "  ✓ $ID → k0rdent slug=$SLUG (mac=$BMC_MAC)"
